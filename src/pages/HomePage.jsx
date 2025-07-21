@@ -901,7 +901,7 @@ function HomePage() {
                 />
                 <div className="absolute top-4 right-4 z-20">
                   <SiCodemagic
-                    className="text-xl text-white cursor-pointer transition-all duration-200 hover:text-2xl"
+                    className="text-xl text-pink-400 cursor-pointer transition-all duration-200 hover:text-2xl"
                     onClick={() => setShowAIDropdown(!showAIDropdown)}
                     aria-label="Toggle AI features dropdown"
                     data-testid="ai-magic-icon"
@@ -952,7 +952,7 @@ function HomePage() {
                 />
                 <div className="absolute top-4 right-4 z-20">
                   <SiCodemagic
-                    className="text-xl text-white cursor-pointer transition-all duration-200 hover:text-2xl"
+                    className="text-xl text-pink-400 cursor-pointer transition-all duration-200 hover:text-2xl"
                     onClick={() => setShowAIDropdown(!showAIDropdown)}
                     aria-label="Toggle AI features dropdown"
                     data-testid="ai-magic-icon"
