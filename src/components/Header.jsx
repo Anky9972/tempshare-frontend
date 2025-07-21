@@ -6,7 +6,7 @@ function Header() {
   const navigate = useNavigate();
 
   return (
-    <header className="bg-dark-card/50 backdrop-blur-sm sticky top-0 z-10 border-b border-dark-border">
+    <header className="bg-dark-card/50 backdrop-blur-sm sticky top-0 z-30 border-b border-dark-border">
       <div className="container mx-auto p-4 flex justify-between items-center">
         <div>
           <Link to="/" className="text-2xl font-bold text-white hover:text-primary transition-colors">

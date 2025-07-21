@@ -5,7 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import debounce from 'lodash/debounce';
 
-const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api/snippets';
+const API_URL = import.meta.env.VITE_APP_API_URL ;
 
 function History() {
   const [history, setHistory] = useState([]);

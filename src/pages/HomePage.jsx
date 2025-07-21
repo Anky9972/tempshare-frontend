@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import Editor from '@monaco-editor/react';
 import History from '../components/History';
+import MultimediaUpload from '../components/MultimediaUpload';
 import {
   FiSave,
   FiLoader,
@@ -32,7 +33,7 @@ import {
 import { SiCodemagic } from 'react-icons/si';
 import AIFeatures from '../components/AIFeatures';
 
-const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api/snippets';
+const API_URL = import.meta.env.VITE_APP_API_URL;
 const languageOptions = [
   'javascript',
   'typescript',
@@ -87,6 +88,7 @@ function HomePage() {
     securityIssues: [],
     explanation: '',
     summary: '',
+    files: [], // Store multimedia file metadata
   });
   const [showAIDropdown, setShowAIDropdown] = useState(false);
 
@@ -159,6 +161,7 @@ function HomePage() {
         securityIssues: [],
         explanation: '',
         summary: '',
+        files: [],
       });
     }
 
@@ -222,8 +225,8 @@ function HomePage() {
   };
 
   const handleSave = async ({ draft = false } = {}) => {
-    if (!content.trim()) {
-      toast.error('Content cannot be empty.');
+    if (!content.trim() && aiMetadata.files.length === 0) {
+      toast.error('Content or files cannot be empty.');
       return;
     }
 
@@ -257,6 +260,7 @@ function HomePage() {
         hasPassword: !!password,
         tags: tags.split(',').map((t) => t.trim()).filter((t) => t),
         summary: aiMetadata.summary,
+        files: aiMetadata.files, // Include files in history
       };
 
       history.unshift(snippet);
@@ -266,14 +270,11 @@ function HomePage() {
         localStorage.removeItem('snippet_draft');
       }
 
-      // Construct the full URL
       const snippetUrl = `${window.location.origin}/${id}`;
-
-      // Dismiss the loading toast and show the URL toast
       toast.dismiss(toastId);
       toast(
         <div className="flex items-center gap-2">
-          <span> URL: </span>
+          <span>Snippet saved! URL: </span>
           <a
             href={snippetUrl}
             target="_blank"
@@ -291,7 +292,7 @@ function HomePage() {
           </button>
         </div>,
         {
-          duration: 5000, // Show for 5 seconds
+          duration: 5000,
           style: {
             background: '#1e293b',
             color: '#f1f5f9',
@@ -300,7 +301,6 @@ function HomePage() {
         }
       );
 
-      // Delay navigation by 5 seconds
       setTimeout(() => {
         navigate(`/${id}`);
       }, 5000);
@@ -311,6 +311,14 @@ function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilesUploaded = (uploadedFiles) => {
+    setAIMetadata((prev) => ({
+      ...prev,
+      files: [...prev.files, ...uploadedFiles],
+    }));
+    toast.success('Files added to snippet.');
   };
 
   const handleUndo = () => {
@@ -353,29 +361,30 @@ function HomePage() {
   };
 
   const clearContent = () => {
-    if (content && !window.confirm('Are you sure you want to clear all content?')) {
+    if ((content || aiMetadata.files.length > 0) && !window.confirm('Are you sure you want to clear all content and files?')) {
       return;
     }
     setContent('');
     setPassword('');
     setTitle('');
     setTags('');
-    setAIMetadata({ suggestions: [], securityIssues: [], explanation: '', summary: '' });
+    setAIMetadata({ suggestions: [], securityIssues: [], explanation: '', summary: '', files: [] });
     localStorage.removeItem('snippet_draft');
-    toast.success('Content cleared');
+    toast.success('Content and files cleared');
   };
 
   const copyContent = async () => {
     try {
-      await navigator.clipboard.writeText(content);
-      toast.success('Content copied to clipboard');
+      const textToCopy = content + (aiMetadata.files.length > 0 ? '\n\nFiles:\n' + aiMetadata.files.map(f => f.url).join('\n') : '');
+      await navigator.clipboard.writeText(textToCopy);
+      toast.success('Content and file URLs copied to clipboard');
     } catch (err) {
       toast.error('Failed to copy content');
     }
   };
 
   const shareSnippet = async () => {
-    if (!content.trim()) {
+    if (!content.trim() && aiMetadata.files.length === 0) {
       toast.error('Cannot share empty content');
       return;
     }
@@ -384,7 +393,7 @@ function HomePage() {
       if (navigator.share) {
         await navigator.share({
           title: title || 'Code Snippet',
-          text: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+          text: content.substring(0, 100) + (content.length > 100 ? '...' : '') + (aiMetadata.files.length > 0 ? '\nFiles: ' + aiMetadata.files.map(f => f.url).join(', ') : ''),
           url: window.location.href,
         });
       } else {
@@ -405,6 +414,7 @@ function HomePage() {
           <style>
             body { font-family: monospace; white-space: pre-wrap; }
             .header { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+            .file-list { margin-top: 20px; }
           </style>
         </head>
         <body>
@@ -415,6 +425,12 @@ function HomePage() {
           </div>
           <pre>${content}</pre>
           ${aiMetadata.explanation ? `<h3>Explanation</h3><p>${aiMetadata.explanation}</p>` : ''}
+          ${aiMetadata.files.length > 0 ? `
+            <h3>Files</h3>
+            <ul class="file-list">
+              ${aiMetadata.files.map(f => `<li><a href="${f.url}" target="_blank">${f.name} (${(f.size / 1024).toFixed(2)} KB)</a></li>`).join('')}
+            </ul>
+          ` : ''}
         </body>
       </html>
     `);
@@ -423,7 +439,7 @@ function HomePage() {
   };
 
   const downloadContent = () => {
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content + (aiMetadata.files.length > 0 ? '\n\nFiles:\n' + aiMetadata.files.map(f => f.url).join('\n') : '')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -506,7 +522,6 @@ function HomePage() {
       editor.deltaDecorations([], decorations);
     }
 
-    // Update cursor position on editor change
     editor.onDidChangeCursorPosition((e) => {
       setCursorPosition({
         line: e.position.lineNumber,
@@ -514,7 +529,6 @@ function HomePage() {
       });
     });
 
-    // Update selected count
     editor.onDidChangeCursorSelection((e) => {
       const selection = editor.getSelection();
       if (selection.isEmpty()) {
@@ -603,7 +617,7 @@ function HomePage() {
             </label>
             <button
               onClick={shareSnippet}
-              disabled={!content}
+              disabled={!content && aiMetadata.files.length === 0}
               className="p-2 text-slate-400 hover:text-white disabled:opacity-90 z-10"
               aria-label="Share snippet"
               data-testid="share-button"
@@ -612,7 +626,7 @@ function HomePage() {
             </button>
             <button
               onClick={printContent}
-              disabled={!content}
+              disabled={!content && aiMetadata.files.length === 0}
               className="p-2 text-slate-400 hover:text-white disabled:opacity-90 z-10"
               aria-label="Print content"
               data-testid="print-button"
@@ -621,7 +635,7 @@ function HomePage() {
             </button>
             <button
               onClick={downloadContent}
-              disabled={!content}
+              disabled={!content && aiMetadata.files.length === 0}
               className="p-2 text-slate-400 hover:text-white disabled:opacity-90 z-10"
               aria-label="Download content"
               data-testid="download-button"
@@ -630,7 +644,7 @@ function HomePage() {
             </button>
             <button
               onClick={copyContent}
-              disabled={!content}
+              disabled={!content && aiMetadata.files.length === 0}
               className="p-2 text-slate-400 hover:text-white disabled:opacity-90 z-10"
               aria-label="Copy content"
               data-testid="copy-button"
@@ -639,7 +653,7 @@ function HomePage() {
             </button>
             <button
               onClick={clearContent}
-              disabled={!content}
+              disabled={!content && aiMetadata.files.length === 0}
               className="p-2 text-slate-400 hover:text-red-400 disabled:opacity-90 z-10"
               aria-label="Clear content"
               data-testid="clear-button"
@@ -656,6 +670,8 @@ function HomePage() {
             </button>
           </div>
         </div>
+
+        <MultimediaUpload onFilesUploaded={handleFilesUploaded} disabled={loading} />
 
         {showSearchReplace && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 z-10">
@@ -814,7 +830,7 @@ function HomePage() {
               aria-label="Switch to code"
               data-testid="code-tab"
             />
-            {content && (
+            {(content || aiMetadata.files.length > 0) && (
               <TabButton
                 icon={<FiEye />}
                 label="Preview"
@@ -835,11 +851,32 @@ function HomePage() {
           </div>
 
           <div className="p-4 relative">
-            {showPreview && content ? (
+            {showPreview && (content || aiMetadata.files.length > 0) ? (
               <div className="prose prose-invert max-w-none">
-                <pre className="bg-slate-800 p-4 rounded overflow-auto" style={{ fontSize: `${fontSize}px` }}>
-                  {content}
-                </pre>
+                {content && (
+                  <pre className="bg-slate-800 p-4 rounded overflow-auto" style={{ fontSize: `${fontSize}px` }}>
+                    {content}
+                  </pre>
+                )}
+                {aiMetadata.files.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-lg font-semibold text-white">Files</h4>
+                    <ul className="list-disc pl-5">
+                      {aiMetadata.files.map((file, index) => (
+                        <li key={index}>
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 underline"
+                          >
+                            {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ) : isCode ? (
               <div className="relative w-full">
@@ -1043,7 +1080,7 @@ function HomePage() {
         <div className="space-y-3" data-testid="save-button-container">
           <button
             onClick={() => handleSave()}
-            disabled={loading || !content.trim()}
+            disabled={loading || (!content.trim() && aiMetadata.files.length === 0)}
             className="w-full py-4 flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-700 hover:to-blue-500 text-white font-bold text-lg rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-90 transition-all duration-200 shadow-lg hover:shadow-xl z-50 outline"
             aria-label="Save snippet"
             data-testid="save-button"
@@ -1064,7 +1101,7 @@ function HomePage() {
           <div className="flex gap-2 justify-center">
             <button
               onClick={() => handleSave({ draft: true })}
-              disabled={loading || !content.trim()}
+              disabled={loading || (!content.trim() && aiMetadata.files.length === 0)}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md text-sm disabled:opacity-90 z-10"
               aria-label="Save as draft"
               data-testid="draft-button"
@@ -1078,7 +1115,7 @@ function HomePage() {
                 setTitle('');
                 setTags('');
                 setPassword('');
-                setAIMetadata({ suggestions: [], securityIssues: [], explanation: '', summary: '' });
+                setAIMetadata({ suggestions: [], securityIssues: [], explanation: '', summary: '', files: [] });
               }}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md text-sm z-10"
               aria-label="New snippet"
@@ -1100,7 +1137,7 @@ function HomePage() {
       <div className="fixed bottom-6 right-6 md:hidden">
         <button
           onClick={() => handleSave()}
-          disabled={loading || !content.trim()}
+          disabled={loading || (!content.trim() && aiMetadata.files.length === 0)}
           className="w-14 h-14 bg-blue-500 hover:bg-blue-700 rounded-full flex items-center justify-center text-white shadow-lg disabled:opacity-90 z-50 outline outline-2 outline-red-500"
           aria-label="Save snippet (mobile)"
           data-testid="mobile-save-button"
@@ -1115,10 +1152,11 @@ function HomePage() {
 const TabButton = ({ icon, label, active, onClick, ariaLabel, dataTestId }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 py-4 px-6 text-sm font-semibold transition-all duration-200 ${active
+    className={`flex items-center gap-2 py-4 px-6 text-sm font-semibold transition-all duration-200 ${
+      active
         ? 'bg-slate-900 text-blue-500 border-b-2 border-blue-500'
         : 'text-slate-400 hover:bg-slate-700 hover:text-slate-300'
-      } z-10`}
+    } z-10`}
     aria-label={ariaLabel}
     data-testid={dataTestId}
   >

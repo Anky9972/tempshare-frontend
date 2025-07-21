@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { FiX, FiCheckCircle, FiCopy, FiPlus } from 'react-icons/fi';
 
 // Base URL for API calls with fallback
-const API_BASE_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api/snippets';
+const API_BASE_URL = import.meta.env.VITE_APP_API_URL ;
 console.log('API Base URL:', API_BASE_URL);
 
 const AIFeatures = ({
