@@ -14,7 +14,7 @@ import { FiClipboard, FiShare2, FiLock, FiLoader, FiDownload, FiInfo } from 'rea
 import qrcode from 'v-qr-code-next';
 import ErrorBoundary from './ErrorBoundary';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/snippets';
+const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api/snippets';
 
 const SnippetPage = () => {
   const { id } = useParams();

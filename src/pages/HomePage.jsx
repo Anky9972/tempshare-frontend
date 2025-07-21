@@ -4,7 +4,6 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import Editor from '@monaco-editor/react';
 import History from '../components/History';
-import AIFeatures from '../components/AIFeatures';
 import {
   FiSave,
   FiLoader,
@@ -28,9 +27,12 @@ import {
   FiShare2,
   FiPrinter,
   FiEdit3,
+  FiGlobe,
 } from 'react-icons/fi';
+import { SiCodemagic } from 'react-icons/si';
+import AIFeatures from '../components/AIFeatures';
 
-const API_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:5000/api/snippets';
+const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000/api/snippets';
 const languageOptions = [
   'javascript',
   'typescript',
@@ -86,10 +88,23 @@ function HomePage() {
     explanation: '',
     summary: '',
   });
+  const [showAIDropdown, setShowAIDropdown] = useState(false);
 
   const textareaRef = useRef(null);
   const editorRef = useRef(null);
+  const aiDropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // Handle clicks outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (aiDropdownRef.current && !aiDropdownRef.current.contains(event.target)) {
+        setShowAIDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!autoSaveEnabled || !content.trim() || !isDirty) return;
@@ -251,8 +266,44 @@ function HomePage() {
         localStorage.removeItem('snippet_draft');
       }
 
-      toast.success('Snippet saved! Redirecting...', { id: toastId });
-      navigate(`/${id}`);
+      // Construct the full URL
+      const snippetUrl = `${window.location.origin}/${id}`;
+
+      // Dismiss the loading toast and show the URL toast
+      toast.dismiss(toastId);
+      toast(
+        <div className="flex items-center gap-2">
+          <span> URL: </span>
+          <a
+            href={snippetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline"
+          >
+            {snippetUrl}
+          </a>
+          <button
+            onClick={() => navigator.clipboard.writeText(snippetUrl).then(() => toast.success('URL copied!'))}
+            className="p-1 text-slate-300 hover:text-white"
+            aria-label="Copy URL"
+          >
+            <FiCopy />
+          </button>
+        </div>,
+        {
+          duration: 5000, // Show for 5 seconds
+          style: {
+            background: '#1e293b',
+            color: '#f1f5f9',
+            border: '1px solid #475569',
+          },
+        }
+      );
+
+      // Delay navigation by 5 seconds
+      setTimeout(() => {
+        navigate(`/${id}`);
+      }, 5000);
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Failed to save snippet. Please try again.';
       toast.error(errorMessage, { id: toastId });
@@ -417,15 +468,10 @@ function HomePage() {
         txt: 'plaintext',
       };
 
-      if (codeExtensions[extension]) {
-        setIsCode(true);
-        setLanguage(codeExtensions[extension]);
-      } else {
-        setIsCode(false);
-        setLanguage('plaintext');
-      }
-
-      toast.success(`File "${file.name}" loaded`);
+      const detectedLanguage = codeExtensions[extension] || 'plaintext';
+      setIsCode(detectedLanguage !== 'plaintext');
+      setLanguage(detectedLanguage);
+      toast.success(`File "${file.name}" loaded. Language set to ${detectedLanguage}`);
     };
     reader.readAsText(file);
   };
@@ -459,6 +505,25 @@ function HomePage() {
       }));
       editor.deltaDecorations([], decorations);
     }
+
+    // Update cursor position on editor change
+    editor.onDidChangeCursorPosition((e) => {
+      setCursorPosition({
+        line: e.position.lineNumber,
+        column: e.position.column,
+      });
+    });
+
+    // Update selected count
+    editor.onDidChangeCursorSelection((e) => {
+      const selection = editor.getSelection();
+      if (selection.isEmpty()) {
+        setSelectedCount(0);
+      } else {
+        const selectedText = editor.getModel().getValueInRange(selection);
+        setSelectedCount(selectedText.length);
+      }
+    });
   };
 
   return (
@@ -478,6 +543,15 @@ function HomePage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAIDropdown(true)}
+              disabled={!content}
+              className="p-2 text-slate-400 hover:text-white disabled:opacity-90 z-10"
+              aria-label="Detect language"
+              data-testid="detect-language-button"
+            >
+              <FiGlobe />
+            </button>
             <button
               onClick={handleUndo}
               disabled={undoStack.length <= 1}
@@ -693,19 +767,6 @@ function HomePage() {
           </div>
         )}
 
-        <AIFeatures
-          content={content}
-          language={language}
-          cursorPosition={cursorPosition}
-          setContent={setContent}
-          setTags={setTags}
-          isCode={isCode}
-          onSuggestionsUpdate={(suggestions) => setAIMetadata((prev) => ({ ...prev, suggestions }))}
-          onExplanationUpdate={(explanation) => setAIMetadata((prev) => ({ ...prev, explanation }))}
-          onSecurityIssuesUpdate={(securityIssues) => setAIMetadata((prev) => ({ ...prev, securityIssues }))}
-          onSummaryUpdate={(summary) => setAIMetadata((prev) => ({ ...prev, summary }))}
-        />
-
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -773,7 +834,7 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="p-4">
+          <div className="p-4 relative">
             {showPreview && content ? (
               <div className="prose prose-invert max-w-none">
                 <pre className="bg-slate-800 p-4 rounded overflow-auto" style={{ fontSize: `${fontSize}px` }}>
@@ -781,14 +842,12 @@ function HomePage() {
                 </pre>
               </div>
             ) : isCode ? (
-              <div className="relative">
+              <div className="relative w-full">
                 <Editor
                   height={isFullscreen ? 'calc(100vh - 400px)' : '400px'}
                   language={language === 'markup' ? 'html' : language}
                   value={content}
-                  onChange={(code) => {
-                    setContent(code || '');
-                  }}
+                  onChange={(code) => setContent(code || '')}
                   onMount={handleEditorDidMount}
                   options={{
                     fontSize: fontSize,
@@ -797,34 +856,94 @@ function HomePage() {
                     lineHeight: 1.6,
                     theme:
                       theme === 'tomorrow' ? 'vs-dark' :
-                      theme === 'dark' ? 'hc-black' :
-                      theme === 'light' ? 'vs' :
-                      'vs',
+                        theme === 'dark' ? 'hc-black' :
+                          theme === 'light' ? 'vs' : 'vs',
                   }}
+                  className="w-full"
                   data-testid="code-editor"
                 />
+                <div className="absolute top-4 right-4 z-20">
+                  <SiCodemagic
+                    className="text-xl text-white cursor-pointer transition-all duration-200 hover:text-2xl"
+                    onClick={() => setShowAIDropdown(!showAIDropdown)}
+                    aria-label="Toggle AI features dropdown"
+                    data-testid="ai-magic-icon"
+                  />
+                  {showAIDropdown && (
+                    <div
+                      ref={aiDropdownRef}
+                      className="absolute right-0 mt-2 w-64 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
+                    >
+                      <AIFeatures
+                        content={content}
+                        language={language}
+                        cursorPosition={cursorPosition}
+                        setContent={setContent}
+                        setTags={setTags}
+                        isCode={isCode}
+                        setIsCode={setIsCode}
+                        setLanguage={setLanguage}
+                        onSuggestionsUpdate={(suggestions) => setAIMetadata((prev) => ({ ...prev, suggestions }))}
+                        onExplanationUpdate={(explanation) => setAIMetadata((prev) => ({ ...prev, explanation }))}
+                        onSecurityIssuesUpdate={(securityIssues) => setAIMetadata((prev) => ({ ...prev, securityIssues }))}
+                        onSummaryUpdate={(summary) => setAIMetadata((prev) => ({ ...prev, summary }))}
+                        onClose={() => setShowAIDropdown(false)}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => {
-                  setContent(e.target.value);
-                  handleTextareaChange(e);
-                }}
-                onSelect={handleTextareaChange}
-                placeholder="Start typing or paste your content here..."
-                className={`w-full p-4 bg-slate-800 text-slate-300 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                  isFullscreen ? 'h-[calc(100vh-400px)]' : 'h-96'
-                }`}
-                style={{
-                  fontFamily: '"Inter", system-ui, sans-serif',
-                  fontSize: `${fontSize}px`,
-                  lineHeight: '1.6',
-                }}
-                aria-label="Plain text editor"
-                data-testid="text-editor"
-              />
+              <div className="relative w-full">
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value);
+                    handleTextareaChange(e);
+                  }}
+                  onSelect={handleTextareaChange}
+                  placeholder="Start typing or paste your content here..."
+                  className={`w-full p-4 bg-slate-800 text-slate-300 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${isFullscreen ? 'h-[calc(100vh-400px)]' : 'h-96'}`}
+                  style={{
+                    fontFamily: '"Inter", system-ui, sans-serif',
+                    fontSize: `${fontSize}px`,
+                    lineHeight: '1.6',
+                  }}
+                  aria-label="Plain text editor"
+                  data-testid="text-editor"
+                />
+                <div className="absolute top-4 right-4 z-20">
+                  <SiCodemagic
+                    className="text-xl text-white cursor-pointer transition-all duration-200 hover:text-2xl"
+                    onClick={() => setShowAIDropdown(!showAIDropdown)}
+                    aria-label="Toggle AI features dropdown"
+                    data-testid="ai-magic-icon"
+                  />
+                  {showAIDropdown && (
+                    <div
+                      ref={aiDropdownRef}
+                      className="absolute right-0 mt-2 w-64 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
+                    >
+                      <AIFeatures
+                        content={content}
+                        language={language}
+                        cursorPosition={cursorPosition}
+                        setContent={setContent}
+                        setTags={setTags}
+                        isCode={isCode}
+                        setIsCode={setIsCode}
+                        setLanguage={setLanguage}
+                        onSuggestionsUpdate={(suggestions) => setAIMetadata((prev) => ({ ...prev, suggestions }))}
+                        onExplanationUpdate={(explanation) => setAIMetadata((prev) => ({ ...prev, explanation }))}
+                        onSecurityIssuesUpdate={(securityIssues) => setAIMetadata((prev) => ({ ...prev, securityIssues }))}
+                        onSummaryUpdate={(summary) => setAIMetadata((prev) => ({ ...prev, summary }))}
+                        onClose={() => setShowAIDropdown(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -996,11 +1115,10 @@ function HomePage() {
 const TabButton = ({ icon, label, active, onClick, ariaLabel, dataTestId }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 py-4 px-6 text-sm font-semibold transition-all duration-200 ${
-      active
+    className={`flex items-center gap-2 py-4 px-6 text-sm font-semibold transition-all duration-200 ${active
         ? 'bg-slate-900 text-blue-500 border-b-2 border-blue-500'
         : 'text-slate-400 hover:bg-slate-700 hover:text-slate-300'
-    } z-10`}
+      } z-10`}
     aria-label={ariaLabel}
     data-testid={dataTestId}
   >
