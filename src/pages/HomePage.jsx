@@ -83,12 +83,13 @@ function HomePage() {
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // Added for mobile history toggle
   const [aiMetadata, setAIMetadata] = useState({
     suggestions: [],
     securityIssues: [],
     explanation: '',
     summary: '',
-    files: [], // Store multimedia file metadata
+    files: [],
   });
   const [showAIDropdown, setShowAIDropdown] = useState(false);
 
@@ -260,7 +261,7 @@ function HomePage() {
         hasPassword: !!password,
         tags: tags.split(',').map((t) => t.trim()).filter((t) => t),
         summary: aiMetadata.summary,
-        files: aiMetadata.files, // Include files in history
+        files: aiMetadata.files,
       };
 
       history.unshift(snippet);
@@ -412,9 +413,10 @@ function HomePage() {
         <head>
           <title>${title || 'Code Snippet'}</title>
           <style>
-            body { font-family: monospace; white-space: pre-wrap; }
+            body { font-family: monospace; white-space: pre-wrap; padding: 20px; }
             .header { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
             .file-list { margin-top: 20px; }
+            @media print { body { padding: 10px; } }
           </style>
         </head>
         <body>
@@ -541,22 +543,23 @@ function HomePage() {
   };
 
   return (
-    <div className={`transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50 bg-slate-900 p-4' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}`}>
-      <div className={`${isFullscreen ? 'w-full' : 'lg:col-span-2'} space-y-6`}>
-        <div className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-4 z-10">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-white">
+    <div className={`transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50 bg-slate-900 px-2 sm:px-4 md:p-6 min-h-screen' : 'grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 px-2 sm:px-4 md:p-6'}`}>
+      <div className={`${isFullscreen ? 'w-full' : 'lg:col-span-2'} space-y-4 sm:space-y-6`}>
+        {/* Header with responsive padding and font sizes */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 z-10">
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-0">
+            <h2 className="text-lg sm:text-xl font-bold text-white">
               {title || (isCode ? `${language.charAt(0).toUpperCase() + language.slice(1)} Code` : 'Plain Text')}
             </h2>
-            {isDirty && <span className="text-yellow-400 text-sm">• Unsaved changes</span>}
+            {isDirty && <span className="text-yellow-400 text-xs sm:text-sm">• Unsaved changes</span>}
             {lastSaved && (
-              <span className="text-green-400 text-sm">
+              <span className="text-green-400 text-xs sm:text-sm">
                 Last saved: {lastSaved.toLocaleTimeString()}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowAIDropdown(true)}
               disabled={!content}
@@ -564,7 +567,7 @@ function HomePage() {
               aria-label="Detect language"
               data-testid="detect-language-button"
             >
-              <FiGlobe />
+              <FiGlobe className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={handleUndo}
@@ -573,7 +576,7 @@ function HomePage() {
               aria-label="Undo"
               data-testid="undo-button"
             >
-              <FiRotateCcw />
+              <FiRotateCcw className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={handleRedo}
@@ -582,7 +585,7 @@ function HomePage() {
               aria-label="Redo"
               data-testid="redo-button"
             >
-              <FiRotateCw />
+              <FiRotateCw className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={() => setShowSearchReplace(!showSearchReplace)}
@@ -590,7 +593,7 @@ function HomePage() {
               aria-label="Toggle search and replace"
               data-testid="search-button"
             >
-              <FiSearch />
+              <FiSearch className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -598,7 +601,7 @@ function HomePage() {
               aria-label="Toggle settings"
               data-testid="settings-button"
             >
-              <FiSettings />
+              <FiSettings className="text-lg sm:text-xl" />
             </button>
             <input
               type="file"
@@ -613,7 +616,7 @@ function HomePage() {
               aria-label="Upload file"
               data-testid="upload-button"
             >
-              <FiUpload />
+              <FiUpload className="text-lg sm:text-xl" />
             </label>
             <button
               onClick={shareSnippet}
@@ -622,7 +625,7 @@ function HomePage() {
               aria-label="Share snippet"
               data-testid="share-button"
             >
-              <FiShare2 />
+              <FiShare2 className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={printContent}
@@ -631,7 +634,7 @@ function HomePage() {
               aria-label="Print content"
               data-testid="print-button"
             >
-              <FiPrinter />
+              <FiPrinter className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={downloadContent}
@@ -640,16 +643,7 @@ function HomePage() {
               aria-label="Download content"
               data-testid="download-button"
             >
-              <FiDownload />
-            </button>
-            <button
-              onClick={copyContent}
-              disabled={!content && aiMetadata.files.length === 0}
-              className="p-2 text-slate-400 hover:text-white disabled:opacity-90 z-10"
-              aria-label="Copy content"
-              data-testid="copy-button"
-            >
-              <FiCopy />
+              <FiDownload className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={clearContent}
@@ -658,7 +652,7 @@ function HomePage() {
               aria-label="Clear content"
               data-testid="clear-button"
             >
-              <FiTrash2 />
+              <FiTrash2 className="text-lg sm:text-xl" />
             </button>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
@@ -666,23 +660,34 @@ function HomePage() {
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               data-testid="fullscreen-button"
             >
-              {isFullscreen ? <FiMinimize2 /> : <FiMaximize2 />}
+              {isFullscreen ? <FiMinimize2 className="text-lg sm:text-xl" /> : <FiMaximize2 className="text-lg sm:text-xl" />}
             </button>
+            {/* Added history toggle for mobile */}
+            {!isFullscreen && (
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="p-2 text-slate-400 hover:text-white z-10 lg:hidden"
+                aria-label="Toggle history"
+                data-testid="history-toggle-button"
+              >
+                <FiBookmark className="text-lg sm:text-xl" />
+              </button>
+            )}
           </div>
         </div>
 
         <MultimediaUpload onFilesUploaded={handleFilesUploaded} disabled={loading} />
 
         {showSearchReplace && (
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full p-2 bg-slate-700 text-slate-300 border border-slate-600 rounded"
+                  className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded text-sm sm:text-base"
                   aria-label="Search term"
                   data-testid="search-input"
                 />
@@ -693,7 +698,7 @@ function HomePage() {
                   placeholder="Replace with..."
                   value={replaceTerm}
                   onChange={(e) => setReplaceTerm(e.target.value)}
-                  className="w-full p-2 bg-slate-700 text-slate-300 border border-slate-600 rounded"
+                  className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded text-sm sm:text-base"
                   aria-label="Replace term"
                   data-testid="replace-input"
                 />
@@ -702,7 +707,7 @@ function HomePage() {
             <div className="flex gap-2 mt-3">
               <button
                 onClick={handleSearch}
-                className="px-4 py-2 bg-blue-500 text-white rounded z-10"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-500 text-white rounded text-sm sm:text-base z-10"
                 aria-label="Find"
                 data-testid="find-button"
               >
@@ -710,7 +715,7 @@ function HomePage() {
               </button>
               <button
                 onClick={handleReplace}
-                className="px-4 py-2 bg-orange-500 text-white rounded z-10"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-500 text-white rounded text-sm sm:text-base z-10"
                 aria-label="Replace all"
                 data-testid="replace-button"
               >
@@ -721,15 +726,15 @@ function HomePage() {
         )}
 
         {showSettings && (
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 z-10">
-            <h4 className="text-lg font-semibold text-white mb-4">Editor Settings</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 z-10">
+            <h4 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Editor Settings</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Font Size</label>
+                <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Font Size</label>
                 <select
                   value={fontSize}
                   onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full p-2 bg-slate-700 text-slate-300 border border-slate-600 rounded"
+                  className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded text-sm sm:text-base"
                   aria-label="Font size"
                   data-testid="font-size-select"
                 >
@@ -741,11 +746,11 @@ function HomePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Theme</label>
+                <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Theme</label>
                 <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value)}
-                  className="w-full p-2 bg-slate-700 text-slate-300 border border-slate-600 rounded"
+                  className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded text-sm sm:text-base"
                   aria-label="Theme"
                   data-testid="theme-select"
                 >
@@ -756,8 +761,8 @@ function HomePage() {
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
                   <input
                     type="checkbox"
                     checked={autoSaveEnabled}
@@ -771,7 +776,7 @@ function HomePage() {
                 {isCode && (
                   <button
                     onClick={formatContent}
-                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm z-10"
+                    className="px-2 sm:px-3 py-1 bg-blue-500 text-white rounded text-xs sm:text-sm z-10"
                     aria-label="Format code"
                     data-testid="format-button"
                   >
@@ -783,28 +788,28 @@ function HomePage() {
           </div>
         )}
 
-        <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 sm:p-4 z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Title</label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Title</label>
               <input
                 type="text"
                 placeholder="Give your snippet a title..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 aria-label="Snippet title"
                 data-testid="title-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Tags (comma-separated)</label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Tags (comma-separated)</label>
               <input
                 type="text"
                 placeholder="react, javascript, tutorial..."
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                className="w-full p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 aria-label="Snippet tags"
                 data-testid="tags-input"
               />
@@ -813,7 +818,7 @@ function HomePage() {
         </div>
 
         <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-10">
-          <div className="flex border-b border-slate-600">
+          <div className="flex flex-wrap border-b border-slate-600">
             <TabButton
               icon={<FiFileText />}
               label="Plain Text"
@@ -841,7 +846,7 @@ function HomePage() {
               />
             )}
 
-            <div className="ml-auto flex items-center gap-4 px-4 text-xs text-slate-400">
+            <div className="ml-auto flex flex-wrap items-center gap-2 sm:gap-4 px-3 sm:px-4 text-xs text-slate-400">
               <span>Ln {cursorPosition.line}, Col {cursorPosition.column}</span>
               {selectedCount > 0 && <span>Selected: {selectedCount}</span>}
               <span>Lines: {lineCount}</span>
@@ -850,18 +855,18 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="p-4 relative">
+          <div className="p-3 sm:p-4 relative">
             {showPreview && (content || aiMetadata.files.length > 0) ? (
-              <div className="prose prose-invert max-w-none">
+              <div className="prose prose-invert max-w-none overflow-auto">
                 {content && (
-                  <pre className="bg-slate-800 p-4 rounded overflow-auto" style={{ fontSize: `${fontSize}px` }}>
+                  <pre className="bg-slate-800 p-3 sm:p-4 rounded overflow-auto" style={{ fontSize: `${fontSize}px` }}>
                     {content}
                   </pre>
                 )}
                 {aiMetadata.files.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-lg font-semibold text-white">Files</h4>
-                    <ul className="list-disc pl-5">
+                  <div className="mt-3 sm:mt-4">
+                    <h4 className="text-base sm:text-lg font-semibold text-white">Files</h4>
+                    <ul className="list-disc pl-5 text-sm sm:text-base">
                       {aiMetadata.files.map((file, index) => (
                         <li key={index}>
                           <a
@@ -881,7 +886,7 @@ function HomePage() {
             ) : isCode ? (
               <div className="relative w-full">
                 <Editor
-                  height={isFullscreen ? 'calc(100vh - 400px)' : '400px'}
+                  height={isFullscreen ? 'calc(100vh - 16rem)' : 'min(80vh, 500px)'}
                   language={language === 'markup' ? 'html' : language}
                   value={content}
                   onChange={(code) => setContent(code || '')}
@@ -895,13 +900,15 @@ function HomePage() {
                       theme === 'tomorrow' ? 'vs-dark' :
                         theme === 'dark' ? 'hc-black' :
                           theme === 'light' ? 'vs' : 'vs',
+                    scrollBeyondLastLine: false,
+                    minimap: { enabled: window.innerWidth > 768 }, // Disable minimap on mobile
                   }}
                   className="w-full"
                   data-testid="code-editor"
                 />
-                <div className="absolute top-4 right-4 z-20">
+                <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-20">
                   <SiCodemagic
-                    className="text-xl text-pink-400 cursor-pointer transition-all duration-200 hover:text-2xl"
+                    className="text-lg sm:text-xl text-pink-400 cursor-pointer transition-all duration-200 hover:text-xl sm:hover:text-2xl"
                     onClick={() => setShowAIDropdown(!showAIDropdown)}
                     aria-label="Toggle AI features dropdown"
                     data-testid="ai-magic-icon"
@@ -909,7 +916,7 @@ function HomePage() {
                   {showAIDropdown && (
                     <div
                       ref={aiDropdownRef}
-                      className="absolute right-0 mt-2 w-64 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
+                      className="absolute right-0 mt-2 w-11/12 sm:w-64 max-w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
                     >
                       <AIFeatures
                         content={content}
@@ -941,7 +948,7 @@ function HomePage() {
                   }}
                   onSelect={handleTextareaChange}
                   placeholder="Start typing or paste your content here..."
-                  className={`w-full p-4 bg-slate-800 text-slate-300 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${isFullscreen ? 'h-[calc(100vh-400px)]' : 'h-96'}`}
+                  className={`w-full p-3 sm:p-4 bg-slate-800 text-slate-300 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${isFullscreen ? 'h-[calc(100vh-16rem)]' : 'h-[min(80vh,500px)]'}`}
                   style={{
                     fontFamily: '"Inter", system-ui, sans-serif',
                     fontSize: `${fontSize}px`,
@@ -950,9 +957,9 @@ function HomePage() {
                   aria-label="Plain text editor"
                   data-testid="text-editor"
                 />
-                <div className="absolute top-4 right-4 z-20">
+                <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-20">
                   <SiCodemagic
-                    className="text-xl text-pink-400 cursor-pointer transition-all duration-200 hover:text-2xl"
+                    className="text-lg sm:text-xl text-pink-400 cursor-pointer transition-all duration-200 hover:text-xl sm:hover:text-2xl"
                     onClick={() => setShowAIDropdown(!showAIDropdown)}
                     aria-label="Toggle AI features dropdown"
                     data-testid="ai-magic-icon"
@@ -960,7 +967,7 @@ function HomePage() {
                   {showAIDropdown && (
                     <div
                       ref={aiDropdownRef}
-                      className="absolute right-0 mt-2 w-64 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
+                      className="absolute right-0 mt-2 w-11/12 sm:w-64 max-w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
                     >
                       <AIFeatures
                         content={content}
@@ -985,20 +992,20 @@ function HomePage() {
           </div>
         </div>
 
-        <div className="bg-slate-800 border border-slate-700 p-6 rounded-lg shadow-lg z-10">
-          <h3 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+        <div className="bg-slate-800 border border-slate-700 p-3 sm:p-6 rounded-lg shadow-lg z-10">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white flex items-center gap-2">
             <FiClock className="text-blue-500" />
             Snippet Options
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {isCode && (
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Language</label>
+                <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Language</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   aria-label="Language"
                   data-testid="language-select"
                 >
@@ -1012,22 +1019,22 @@ function HomePage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Password Protection</label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Password Protection</label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <FiLock className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Optional password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-8 sm:pl-10 pr-8 sm:pr-10 p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   aria-label="Password"
                   data-testid="password-input"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   data-testid="toggle-password-button"
                 >
@@ -1037,13 +1044,13 @@ function HomePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Expiration</label>
+              <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Expiration</label>
               <div className="relative">
-                <FiClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 z-10" />
+                <FiClock className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-slate-400 z-10" />
                 <select
                   value={expireIn}
                   onChange={(e) => setExpireIn(e.target.value)}
-                  className="w-full pl-10 p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md appearance-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-8 sm:pl-10 p-2 sm:p-3 bg-slate-700 text-slate-300 border border-slate-600 rounded-md appearance-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   aria-label="Expiration"
                   data-testid="expiration-select"
                 >
@@ -1059,9 +1066,9 @@ function HomePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">Visibility</label>
-              <div className="flex items-center gap-4 mt-3">
-                <label className="flex items-center gap-2 text-sm text-slate-400">
+              <label className="block text-xs sm:text-sm font-medium text-slate-400 mb-1 sm:mb-2">Visibility</label>
+              <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3">
+                <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
                   <input
                     type="checkbox"
                     checked={isPrivate}
@@ -1081,32 +1088,32 @@ function HomePage() {
           <button
             onClick={() => handleSave()}
             disabled={loading || (!content.trim() && aiMetadata.files.length === 0)}
-            className="w-full py-4 flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-700 hover:to-blue-500 text-white font-bold text-lg rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-90 transition-all duration-200 shadow-lg hover:shadow-xl z-50 outline"
+            className="w-full py-3 sm:py-4 flex items-center justify-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-700 hover:to-blue-500 text-white font-bold text-base sm:text-lg rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-90 transition-all duration-200 shadow-lg hover:shadow-xl z-50 outline"
             aria-label="Save snippet"
             data-testid="save-button"
           >
             {loading ? (
               <>
-                <FiLoader className="animate-spin text-xl" />
+                <FiLoader className="animate-spin text-lg sm:text-xl" />
                 Saving...
               </>
             ) : (
               <>
-                <FiSave className="text-xl" />
+                <FiSave className="text-lg sm:text-xl" />
                 Save & Get Shareable Link
               </>
             )}
           </button>
 
-          <div className="flex gap-2 justify-center">
+          <div className="flex flex-wrap gap-2 justify-center">
             <button
               onClick={() => handleSave({ draft: true })}
               disabled={loading || (!content.trim() && aiMetadata.files.length === 0)}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md text-sm disabled:opacity-90 z-10"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md text-xs sm:text-sm z-10"
               aria-label="Save as draft"
               data-testid="draft-button"
             >
-              <FiBookmark className="inline mr-2" />
+              <FiBookmark className="inline mr-1 sm:mr-2" />
               Save as Draft
             </button>
             <button
@@ -1117,11 +1124,11 @@ function HomePage() {
                 setPassword('');
                 setAIMetadata({ suggestions: [], securityIssues: [], explanation: '', summary: '', files: [] });
               }}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md text-sm z-10"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md text-xs sm:text-sm z-10"
               aria-label="New snippet"
               data-testid="new-snippet-button"
             >
-              <FiEdit3 className="inline mr-2" />
+              <FiEdit3 className="inline mr-1 sm:mr-2" />
               New Snippet
             </button>
           </div>
@@ -1129,20 +1136,20 @@ function HomePage() {
       </div>
 
       {!isFullscreen && (
-        <div className="lg:col-span-1">
+        <div className={`lg:col-span-1 ${showHistory ? 'block' : 'hidden lg:block'}`}>
           <History />
         </div>
       )}
 
-      <div className="fixed bottom-6 right-6 md:hidden">
+      <div className="fixed bottom-8 right-4 sm:bottom-6 sm:right-6 md:hidden">
         <button
           onClick={() => handleSave()}
           disabled={loading || (!content.trim() && aiMetadata.files.length === 0)}
-          className="w-14 h-14 bg-blue-500 hover:bg-blue-700 rounded-full flex items-center justify-center text-white shadow-lg disabled:opacity-90 z-50 outline outline-2 outline-red-500"
+          className="w-16 h-16 bg-blue-500 hover:bg-blue-700 rounded-full flex items-center justify-center text-white shadow-lg disabled:opacity-90 z-50 outline outline-2 outline-red-500"
           aria-label="Save snippet (mobile)"
           data-testid="mobile-save-button"
         >
-          {loading ? <FiLoader className="animate-spin" /> : <FiSave />}
+          {loading ? <FiLoader className="animate-spin text-xl" /> : <FiSave className="text-xl" />}
         </button>
       </div>
     </div>
@@ -1152,7 +1159,7 @@ function HomePage() {
 const TabButton = ({ icon, label, active, onClick, ariaLabel, dataTestId }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 py-4 px-6 text-sm font-semibold transition-all duration-200 ${
+    className={`flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-semibold transition-all duration-200 ${
       active
         ? 'bg-slate-900 text-blue-500 border-b-2 border-blue-500'
         : 'text-slate-400 hover:bg-slate-700 hover:text-slate-300'
