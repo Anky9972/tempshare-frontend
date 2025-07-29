@@ -651,9 +651,9 @@ const AIFeatures = ({
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="w-full space-y-2">
           <h5 className="text-sm font-medium text-slate-300">Enable Features</h5>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="w-full grid grid-cols-1 gap-2">
             {Object.entries(aiSettings).map(([feature, enabled]) => (
               <label key={feature} className="flex items-center gap-3 text-sm text-slate-300 cursor-pointer">
                 <input

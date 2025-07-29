@@ -916,7 +916,7 @@ function HomePage() {
                   {showAIDropdown && (
                     <div
                       ref={aiDropdownRef}
-                      className="absolute right-0 mt-2 w-11/12 sm:w-64 max-w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
+                      className="absolute right-0 mt-2 w-64  bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
                     >
                       <AIFeatures
                         content={content}
@@ -932,6 +932,7 @@ function HomePage() {
                         onSecurityIssuesUpdate={(securityIssues) => setAIMetadata((prev) => ({ ...prev, securityIssues }))}
                         onSummaryUpdate={(summary) => setAIMetadata((prev) => ({ ...prev, summary }))}
                         onClose={() => setShowAIDropdown(false)}
+                        className={`w-full p-4 bg-slate-800 text-slate-300 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${isFullscreen ? 'h-[calc(100vh-400px)]' : 'h-96'}`}
                       />
                     </div>
                   )}
@@ -967,7 +968,7 @@ function HomePage() {
                   {showAIDropdown && (
                     <div
                       ref={aiDropdownRef}
-                      className="absolute right-0 mt-2 w-11/12 sm:w-64 max-w-full bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
+                      className="absolute right-0 mt-2 w-64 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-30"
                     >
                       <AIFeatures
                         content={content}
@@ -983,6 +984,7 @@ function HomePage() {
                         onSecurityIssuesUpdate={(securityIssues) => setAIMetadata((prev) => ({ ...prev, securityIssues }))}
                         onSummaryUpdate={(summary) => setAIMetadata((prev) => ({ ...prev, summary }))}
                         onClose={() => setShowAIDropdown(false)}
+                        className={`w-full p-4 bg-slate-800 text-slate-300 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${isFullscreen ? 'h-[calc(100vh-400px)]' : 'h-96'}`}
                       />
                     </div>
                   )}
